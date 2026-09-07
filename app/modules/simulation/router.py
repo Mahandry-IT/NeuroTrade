@@ -1,10 +1,5 @@
-"""Endpoints FastAPI — module simulation.
+"""Router simulation — délégué à trading_config.
 
-TODO: définir les routes (voir plan, section 6. Controller).
+La route PUT /config/simulation-mode est définie dans trading_config/router.py.
+Ce module ne monte pas de routes supplémentaires.
 """
-
-from fastapi import APIRouter
-
-router = APIRouter(prefix="/simulation", tags=["simulation"])
-
-# TODO: endpoints (déléguer toute la logique au service, jamais au router)

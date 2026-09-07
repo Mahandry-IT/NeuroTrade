@@ -1,7 +1,7 @@
-"""Modèles SQLAlchemy — module simulation.
+"""Module simulation — pas de modèle dédié.
 
-TODO: définir les entités de ce module (voir plan-bot-trading-ia-backend.md, section 2. Modèle).
+L'état simulation/réel est porté par TradingConfig.simulation_mode (RG-5).
+Ce module expose uniquement le service et le router pour basculer.
 """
 
-# from sqlalchemy.orm import Mapped, mapped_column
-# from app.core.database import Base
+# Aucun modèle ici — voir trading_config/models.py
