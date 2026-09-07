@@ -1,13 +1,6 @@
-"""Accès aux données — module history.
+"""Repository history — délègue à TradeRepository.
 
-TODO: implémenter les requêtes (voir plan, section 4. Repository).
+L'historique est lu depuis les tables Trade et Position (trading_engine).
 """
 
-
-class HistoryRepository:
-    """Repository pour le module history."""
-
-    def __init__(self, db_session):
-        self.db = db_session
-
-    # TODO: méthodes CRUD / requêtes agrégées
+# Pas de repository dédié — voir trading_engine/repository.py
