@@ -3,7 +3,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, Float, DateTime, Enum, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, Enum, Boolean, ForeignKey
 
 from app.core.database import Base
 
