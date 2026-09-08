@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime, timezone
+from functools import partial
 
 from sqlalchemy.orm import Session
 
@@ -56,11 +57,18 @@ class TradingConfigService:
 
     def start_bot(self, user_id: int, analysis_callback) -> dict:
         """Démarre le bot — vérifie connexion plateforme (RG-6)."""
+        logger.info("start_bot.step1_check_platform user_id=%d", user_id)
         if not self.auth_service.is_platform_connected(user_id):
             raise ValueError("Platform not connected — cannot start bot")
 
+        logger.info("start_bot.step2_set_running user_id=%d", user_id)
         bot_state = self.bot_repo.set_running(user_id)
-        start_scheduler(analysis_callback, interval_seconds=60)
+
+        logger.info("start_bot.step3_start_scheduler user_id=%d callback=%s", user_id, type(analysis_callback).__name__)
+        # Bind user_id so APScheduler can call the callback without arguments
+        bound_callback = partial(analysis_callback, user_id)
+        start_scheduler(bound_callback, interval_seconds=60)
+
         logger.info("bot_started user_id=%d", user_id)
         return {"status": "running", "message": "Bot started successfully"}
 
