@@ -90,9 +90,101 @@ class TradingEngineService:
         for position in open_positions:
             self._evaluate_position(user_id, position, config)
 
+        # Auto-ouverture : si aucune position ouverte pour la paire configurée
+        pair = config.kraken_pair
+        has_position_for_pair = any(p.symbol == pair for p in open_positions)
+        if not has_position_for_pair:
+            self._try_open_new_position(user_id, config)
+
         logger.info(
             "analysis_cycle_complete user_id=%d open_positions=%d",
             user_id, len(open_positions),
+        )
+
+    def _try_open_new_position(self, user_id: int, config) -> None:
+        """Tente d'ouvrir une nouvelle position si le signal est BUY (RG-4).
+
+        Algorithme :
+        1. Récupérer le prix actuel via KrakenSpotClient (public)
+        2. Récupérer les prix historiques OHLC pour les indicateurs
+        3. Lancer l'analyse technique (indicateurs + Gemini/fallback)
+        4. Si signal BUY → vérifier RG-8 → executor.buy() → créer Position + Trade
+        5. Sinon → logger et attendre le prochain cycle
+        """
+        pair = config.kraken_pair
+        logger.info("try_open_position user_id=%d pair=%s", user_id, pair)
+
+        # Récupérer le prix actuel
+        current_price = self.market_service.get_current_price(pair)
+        if current_price is None:
+            logger.warning("price_unavailable user_id=%d pair=%s — cannot open", user_id, pair)
+            return
+
+        # Récupérer les prix historiques pour les indicateurs techniques
+        prices = self.market_service.get_real_prices(pair, count=100)
+        if not prices:
+            logger.warning("no_historical_prices user_id=%d pair=%s", user_id, pair)
+            prices = [current_price]
+
+        # RG-4 : analyse technique + décision
+        analysis = self.market_service.analyze(pair, prices)
+        signal = analysis.get("signal", "HOLD")
+        source = analysis.get("source", "unknown")
+        logger.info(
+            "market_analysis user_id=%d pair=%s signal=%s source=%s",
+            user_id, pair, signal, source,
+        )
+
+        if "BUY" not in str(signal).upper():
+            logger.info("no_buy_signal user_id=%d signal=%s — waiting", user_id, signal)
+            return
+
+        # RG-8 : vérifier quota mensuel avant achat
+        monthly_trades = self.trade_repo.count_monthly_trades(user_id, config.simulation_mode)
+        if config.max_trades_per_month and monthly_trades >= config.max_trades_per_month:
+            logger.warning(
+                "monthly_quota_reached user_id=%d quota=%d — buy blocked",
+                user_id, config.max_trades_per_month,
+            )
+            return
+
+        # Vérifier qu'un executor est disponible
+        if not self._executor:
+            logger.warning("no_executor user_id=%d — cannot execute buy", user_id)
+            return
+
+        # Calculer le montant à investir (capital_pct_per_trade = % du capital)
+        amount_fiat = config.capital_pct_per_trade
+
+        # Exécuter l'achat via l'executor (simulation ou réel)
+        exec_result = self._executor.buy(pair, amount_fiat)
+        if not exec_result.success:
+            logger.error(
+                "buy_execution_failed user_id=%d pair=%s error=%s",
+                user_id, pair, exec_result.error_message,
+            )
+            return
+
+        # Créer la position en DB
+        position = self.position_repo.create(
+            user_id=user_id,
+            symbol=pair,
+            amount=amount_fiat,
+            quantity=exec_result.quantity,
+            entry_price=exec_result.fill_price,
+            is_simulated=config.simulation_mode,
+        )
+        logger.info(
+            "position_opened user_id=%d position_id=%d pair=%s qty=%.8f price=%.2f",
+            user_id, position.id, pair, exec_result.quantity, exec_result.fill_price,
+        )
+
+        # Enregistrer le trade BUY (RG-10 : idempotence)
+        self._record_buy(user_id, position, exec_result, config)
+
+        logger.info(
+            "new_position_created user_id=%d pair=%s amount=%.2f price=%.2f signal=%s",
+            user_id, pair, amount_fiat, exec_result.fill_price, signal,
         )
 
     def _evaluate_position(self, user_id: int, position, config) -> None:
@@ -198,7 +290,7 @@ class TradingEngineService:
     def _record_buy(
         self, user_id: int, position, exec_result, config
     ) -> None:
-        """Enregistre un achat exécuté (ID: RG-10)."""
+        """Enregistre un achat exécuté (RG-10)."""
         idempotency_key = f"buy_{position.id}_{datetime.now(timezone.utc).isoformat()}"
 
         if self.trade_repo.check_idempotency(idempotency_key):
@@ -223,7 +315,7 @@ class TradingEngineService:
         self, user_id: int, symbol: str, amount_fiat: float,
         price: float, is_simulated: bool = True
     ) -> dict:
-        """Ouvre une nouvelle position."""
+        """Ouvre une nouvelle position (usage manuel)."""
         quantity = amount_fiat / price if price > 0 else 0
         position = self.position_repo.create(
             user_id=user_id, symbol=symbol, amount=amount_fiat,
