@@ -225,7 +225,7 @@ class KrakenSpotClient:
         message = (nonce.encode() + encoded)
         sha256 = hashlib.sha256(message).digest()
         mac = hmac.new(
-            b64decode(api_secret), b"/0/private/" + endpoint + sha256, hashlib.sha512
+            b64decode(api_secret), b"/0/private/" + endpoint.encode() + sha256, hashlib.sha512
         )
         signature = b64encode(mac.digest()).decode()
 
