@@ -1,19 +1,32 @@
 {
   "info": {
     "name": "Trading Bot IA — Backend API",
-    "description": "Collection Postman pour le backend Python/FastAPI du Trading Bot IA.\n\n## Authentification\n1. Inscrire un compte avec `POST /auth/register`\n2. Se connecter avec `POST /auth/login` → le token JWT est automatiquement capturé dans `{{token}}`\n3. Connecter la plateforme Kraken Spot avec `POST /auth/platform-connect`\n\n## Variables\n- `{{baseUrl}}` : `http://localhost:8000` (modifiable)\n- `{{token}}` : JWT token (rempli automatiquement par le script de login)\n\n## Routes\n- 22 endpoints versionnés sous `/api/v1`\n- 1 healthcheck public `/health`\n\n## Intégration Kraken Spot\n- Prix réels via API publique Kraken (Ticker, OHLC)\n- Exécution d'ordres via API privée (HMAC-SHA512)\n- Frais Kraken taker ~0.26% intégrés aux stats de performance\n- Paire de trading configurable (kraken_pair, ex: XXBTZUSD)",
+    "description": "Collection Postman pour le backend Python/FastAPI du Trading Bot IA.\n\n## Authentification\n1. Inscrire un compte avec `POST /auth/register`\n2. Se connecter avec `POST /auth/login` → le token JWT est automatiquement capturé dans `{{token}}`\n3. Connecter la plateforme Kraken Spot avec `POST /auth/platform-connect`\n\n## Variables\n- `{{baseUrl}}` : `http://localhost:8000` (modifiable)\n- `{{token}}` : JWT token (rempli automatiquement par le script de login)\n- `{{notificationId}}` : ID d’une notification (à renseigner manuellement)\n\n## Routes\n- 23 endpoints versionnés sous `/api/v1`\n- 1 healthcheck public `/health`\n\n## Intégration Kraken Spot\n- Prix réels via API publique Kraken (Ticker, OHLC)\n- Exécution d’ordres via API privée (HMAC-SHA512)\n- Frais Kraken taker ~0.26% intégrés aux stats de performance\n- Paire de trading configurable (kraken_pair, ex: XXBTZUSD)\n\n## Market Scanner\n- Scan des paires Kraken par score de profitabilité (volume, spread, volatilité)\n- Découverte automatique des marchés activable via config (`auto_discover_markets`)\n- Filtres : devise de quote, volume minimum 24h, top N candidats",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
     "bearer": [
-      { "key": "token", "value": "{{token}}", "type": "string" }
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8000" },
-    { "key": "token", "value": "" },
-    { "key": "tradeId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -26,8 +39,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             },
             "description": "Healthcheck — vérifie la connexion DB. Aucune auth requise."
           }
@@ -41,11 +58,23 @@
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -73,11 +102,23 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -90,11 +131,23 @@
           "name": "Connect Platform",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/platform-connect",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "platform-connect"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "platform-connect"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -110,8 +163,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/platform-status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "auth", "platform-status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "platform-status"
+              ]
             },
             "description": "Retourne le statut de connexion à la plateforme de trading (connected/disconnected/error). Auth JWT requise."
           }
@@ -128,38 +188,69 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/config/trading-params",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "config", "trading-params"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "trading-params"
+              ]
             },
-            "description": "Récupère les paramètres de trading actuels. Les valeurs par défaut : gain_limit=5%, loss_limit=-3%, capital/trade=2%, quota=20/mois, durée_min=60min, mode_simulation=true. Auth JWT requise."
+            "description": "Récupère les paramètres de trading actuels. Les valeurs par défaut : gain_limit=5%, loss_limit=-3%, capital/trade=2%, quota=20/mois, durée_min=60min, mode_simulation=true, auto_discover=false, max_positions=3, quote=USD, min_volume=10000, cache_ttl=300. Auth JWT requise."
           }
         },
         {
           "name": "Update Trading Params",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/config/trading-params",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "config", "trading-params"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "trading-params"
+              ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"gain_limit_pct\": 8.0,\n  \"loss_limit_pct\": -5.0,\n  \"capital_pct_per_trade\": 3.0,\n  \"max_trades_per_month\": 30,\n  \"min_holding_duration\": 45,\n  \"tax_alert_threshold\": 500.0,\n  \"kraken_pair\": \"XXBTZUSD\"\n}"
+              "raw": "{\n  \"gain_limit_pct\": 8,\n  \"loss_limit_pct\": -5,\n  \"capital_pct_per_trade\": 3,\n  \"max_trades_per_month\": 30,\n  \"min_holding_duration\": 45,\n  \"tax_alert_threshold\": 500,\n  \"kraken_pair\": \"XXBTZUSD\",\n  \"auto_discover_markets\": true,\n  \"max_concurrent_positions\": 5,\n  \"quote_currency\": \"USD\",\n  \"min_volume_24h\": 50000,\n  \"scanner_cache_ttl\": 300\n}"
             },
-            "description": "Mise à jour partielle de la config. Tous les champs sont optionnels. Bornes : gain 0-100%, loss -100-0%, capital 0-100%, quota 1-500. kraken_pair: paire Kraken (ex: XXBTZUSD). Auth JWT requise."
+            "description": "Mise à jour partielle de la config. Tous les champs sont optionnels. Bornes : gain 0-100%, loss -100-0%, capital 0-100%, quota 1-500, min_volume>=0, cache_ttl 60-360s, max_positions 1-20. Auth JWT requise."
           }
         },
         {
           "name": "Set Simulation Mode (RG-5)",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/config/simulation-mode",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "config", "simulation-mode"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "config",
+                "simulation-mode"
+              ]
             },
             "body": {
               "mode": "raw",
@@ -180,8 +271,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/bot/start",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bot", "start"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bot",
+                "start"
+              ]
             },
             "description": "Démarre le bot de trading. RG-6 : refuse (400) si la plateforme n'est pas connectée. Auth JWT requise."
           }
@@ -193,8 +291,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/bot/stop",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bot", "stop"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bot",
+                "stop"
+              ]
             },
             "description": "Arrête le bot immédiatement (RG-6). Plus aucune analyse n'est déclenchée après cet appel. Auth JWT requise."
           }
@@ -206,8 +311,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/bot/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bot", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bot",
+                "status"
+              ]
             },
             "description": "Retourne le statut du bot (running/stopped), la date du dernier cycle, et la date de démarrage. Auth JWT requise."
           }
@@ -224,15 +336,50 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/history/trades?page=1&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "history", "trades"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "history",
+                "trades"
+              ],
               "query": [
-                { "key": "page", "value": "1", "description": "Numéro de page (>= 1)" },
-                { "key": "limit", "value": "20", "description": "Nombre de résultats par page (1-100)" },
-                { "key": "is_simulated", "value": "", "description": "Filtrer par mode simulation (true/false)", "disabled": true },
-                { "key": "date_from", "value": "", "description": "Date début (YYYY-MM-DD)", "disabled": true },
-                { "key": "date_to", "value": "", "description": "Date fin (YYYY-MM-DD)", "disabled": true },
-                { "key": "symbol", "value": "", "description": "Filtrer par symbole (ex: BTCUSDT)", "disabled": true }
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Numéro de page (>= 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Nombre de résultats par page (1-100)"
+                },
+                {
+                  "key": "is_simulated",
+                  "value": "",
+                  "description": "Filtrer par mode simulation (true/false)",
+                  "disabled": true
+                },
+                {
+                  "key": "date_from",
+                  "value": "",
+                  "description": "Date début (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "",
+                  "description": "Date fin (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "symbol",
+                  "value": "",
+                  "description": "Filtrer par symbole (ex: BTCUSDT)",
+                  "disabled": true
+                }
               ]
             },
             "description": "Liste paginée des trades. Filtres optionnels : is_simulated, date_from, date_to, symbol. Auth JWT requise."
@@ -245,8 +392,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/history/stats",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "history", "stats"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "history",
+                "stats"
+              ]
             },
             "description": "Statistiques de performance : nombre total de trades, trades gagnants/perdants, taux de réussite, gain/perte cumulé, total_fees, PnL net (net des frais Kraken ~0.26% taker). Auth JWT requise."
           }
@@ -263,8 +417,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/tax/counters",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "tax", "counters"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax",
+                "counters"
+              ]
             },
             "description": "Compteurs fiscaux : nombre de trades ce mois (RG-8), quota mensuel, volume fiat converti sur l'année (RG-11), seuil d'alerte. Auth JWT requise."
           }
@@ -276,11 +437,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/tax/export",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "tax", "export"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax",
+                "export"
+              ],
               "query": [
-                { "key": "date_from", "value": "", "description": "Date début (YYYY-MM-DD)", "disabled": true },
-                { "key": "date_to", "value": "", "description": "Date fin (YYYY-MM-DD)", "disabled": true }
+                {
+                  "key": "date_from",
+                  "value": "",
+                  "description": "Date début (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "",
+                  "description": "Date fin (YYYY-MM-DD)",
+                  "disabled": true
+                }
               ]
             },
             "description": "Export fiscal au format CSV (RG-11). Retourne les headers et les lignes de vente avec montant fiat. Filtres de date optionnels. Auth JWT requise."
@@ -298,8 +476,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/notifications/",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "notifications", ""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                ""
+              ]
             },
             "description": "Liste des notifications non lues. Retourne un tableau vide si aucune notification. Auth JWT requise."
           }
@@ -310,11 +495,19 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/notifications/{{tradeId}}/read",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "notifications", "{{tradeId}}", "read"]
+              "raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
             },
-            "description": "Marque une notification comme lue. Remplacez `{{tradeId}}` par l'ID de la notification. Auth JWT requise."
+            "description": "Marque une notification comme lue. Renseignez `{{notificationId}}` avec l’ID de la notification (depuis GET /notifications). Auth JWT requise."
           }
         },
         {
@@ -324,10 +517,59 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/notifications/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "notifications", "read-all"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "notifications",
+                "read-all"
+              ]
             },
             "description": "Marque toutes les notifications non lues comme lues. Retourne le nombre de notifications marquées. Auth JWT requise."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Market Scanner",
+      "item": [
+        {
+          "name": "Scan Markets (preview)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/markets/scan?quote_currency=USD&top_n=10&min_volume=10000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "markets",
+                "scan"
+              ],
+              "query": [
+                {
+                  "key": "quote_currency",
+                  "value": "USD",
+                  "description": "Devise de quote pour le filtrage (min 2, max 10 chars)"
+                },
+                {
+                  "key": "top_n",
+                  "value": "10",
+                  "description": "Nombre de candidats à retourner (1-50)"
+                },
+                {
+                  "key": "min_volume",
+                  "value": "10000",
+                  "description": "Volume 24h minimum en fiat pour filtrer les paires"
+                }
+              ]
+            },
+            "description": "Preview des marchés les plus bénéfiques — read-only, pas de trading. Retourne les paires Kraken classées par score de profitabilité (volume, spread, volatilité). Utile pour debugger le scanner avant d’activer l’auto-discover. Auth JWT requise."
           }
         }
       ]
