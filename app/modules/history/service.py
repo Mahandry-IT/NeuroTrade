@@ -34,6 +34,7 @@ class HistoryService:
                     "trade_type": t.trade_type.value,
                     "symbol": t.symbol,
                     "amount_fiat": t.amount_fiat,
+                    "fee": t.fee,
                     "quantity": t.quantity,
                     "price": t.price,
                     "executed_at": t.executed_at,

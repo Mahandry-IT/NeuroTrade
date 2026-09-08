@@ -33,6 +33,7 @@ class TradingConfigService:
             "min_holding_duration": config.min_holding_duration,
             "tax_alert_threshold": config.tax_alert_threshold,
             "simulation_mode": config.simulation_mode,
+            "kraken_pair": config.kraken_pair,
             "created_at": config.created_at,
             "updated_at": config.updated_at,
         }

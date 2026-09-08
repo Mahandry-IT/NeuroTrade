@@ -62,6 +62,7 @@ class TradeRepository:
         is_simulated: bool = True,
         idempotency_key: Optional[str] = None,
         notes: Optional[str] = None,
+        fee: float = 0.0,
     ) -> Trade:
         trade = Trade(
             user_id=user_id,
@@ -74,6 +75,7 @@ class TradeRepository:
             is_simulated=is_simulated,
             idempotency_key=idempotency_key,
             notes=notes,
+            fee=fee,
         )
         self.db.add(trade)
         self.db.commit()
@@ -154,10 +156,11 @@ class TradeRepository:
 
         trades = query.all()
         total = len(trades)
-        winning = sum(1 for t in trades if t.amount_fiat > 0)
+        winning = sum(1 for t in trades if (t.amount_fiat - t.fee) > 0)
         losing = total - winning
-        total_gain = sum(t.amount_fiat for t in trades if t.amount_fiat > 0)
-        total_loss = sum(t.amount_fiat for t in trades if t.amount_fiat < 0)
+        total_gain = sum(t.amount_fiat for t in trades if (t.amount_fiat - t.fee) > 0)
+        total_loss = sum(t.amount_fiat for t in trades if (t.amount_fiat - t.fee) < 0)
+        total_fees = sum(t.fee for t in trades)
 
         return {
             "total_trades": total,
@@ -166,5 +169,6 @@ class TradeRepository:
             "win_rate_pct": round((winning / total * 100) if total > 0 else 0, 2),
             "total_gain_fiat": round(total_gain, 2),
             "total_loss_fiat": round(total_loss, 2),
-            "net_pnl_fiat": round(total_gain + total_loss, 2),
+            "total_fees": round(total_fees, 2),
+            "net_pnl_fiat": round(total_gain + total_loss - total_fees, 2),
         }
