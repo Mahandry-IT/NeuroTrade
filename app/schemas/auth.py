@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.modules.auth.models import PlatformConnectionStatus
 
@@ -12,12 +12,22 @@ from app.modules.auth.models import PlatformConnectionStatus
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=100)
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=72)
+
+    @field_validator("password")
+    @classmethod
+    def truncate_password(cls, v: str) -> str:
+        return v[:72]
 
 
 class UserLogin(BaseModel):
     username: str
     password: str
+
+    @field_validator("password")
+    @classmethod
+    def truncate_password(cls, v: str) -> str:
+        return v[:72]
 
 
 class UserResponse(BaseModel):
