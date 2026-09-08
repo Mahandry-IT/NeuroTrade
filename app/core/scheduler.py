@@ -30,11 +30,13 @@ def get_scheduler() -> BackgroundScheduler:
 
 def start_scheduler(analysis_callback, interval_seconds: int = 60) -> None:
     """Démarre la boucle d'analyse continue."""
+    logger.info("scheduler.start called callback=%s", type(analysis_callback).__name__)
     scheduler = get_scheduler()
     if scheduler.running:
         logger.warning("Scheduler déjà en cours d'exécution")
         return
 
+    logger.info("scheduler.add_job id=market_analysis_cycle interval=%ds", interval_seconds)
     scheduler.add_job(
         analysis_callback,
         "interval",
@@ -42,6 +44,7 @@ def start_scheduler(analysis_callback, interval_seconds: int = 60) -> None:
         id="market_analysis_cycle",
         replace_existing=True,
     )
+    logger.info("scheduler.starting")
     scheduler.start()
     logger.info("Scheduler démarré — intervalle %ds", interval_seconds)
 
