@@ -14,6 +14,7 @@ class TradingConfigUpdate(BaseModel):
     max_trades_per_month: Optional[int] = Field(None, gt=0, le=500)
     min_holding_duration: Optional[int] = Field(None, ge=0)  # en minutes
     tax_alert_threshold: Optional[float] = Field(None, ge=0)
+    kraken_pair: Optional[str] = Field(None, min_length=3, max_length=20)
 
 
 class TradingConfigResponse(BaseModel):
@@ -26,6 +27,7 @@ class TradingConfigResponse(BaseModel):
     min_holding_duration: int
     tax_alert_threshold: float
     simulation_mode: bool
+    kraken_pair: str
     created_at: datetime
     updated_at: datetime
 

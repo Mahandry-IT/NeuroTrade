@@ -63,6 +63,7 @@ class Trade(Base):
     result = Column(Enum(OrderResult, values_callable=lambda e: [x.value for x in e]), default=OrderResult.FILLED)
     is_simulated = Column(Boolean, default=True, nullable=False)
     idempotency_key = Column(String(255), unique=True, nullable=True)  # position_id + cycle_timestamp
+    fee = Column(Float, default=0.0, nullable=False)  # frais Kraken taker (RG-2/3)
     notes = Column(Text, nullable=True)  # raison de la décision (RG-2/3/9 etc.)
 
     __table_args__ = (

@@ -34,5 +34,11 @@ class Settings(BaseSettings):
     trading_platform_api_key: str = ""
     trading_platform_api_secret: str = ""
 
+    # ── Kraken Spot API ──
+    kraken_api_key: str = ""
+    kraken_api_secret: str = ""
+    kraken_taker_fee_pct: float = 0.26  # Kraken default taker fee %
+    kraken_default_pair: str = "XXBTZUSD"  # BTC/USD
+
 
 settings = Settings()

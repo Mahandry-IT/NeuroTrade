@@ -3,7 +3,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, Float, DateTime, Enum, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, Enum, Boolean, ForeignKey
 
 from app.core.database import Base
 
@@ -34,6 +34,9 @@ class TradingConfig(Base):
 
     # RG-5 : mode simulation (activé par défaut)
     simulation_mode = Column(Boolean, default=True, nullable=False)
+
+    # Paire de trading Kraken (ex: XXBTZUSD)
+    kraken_pair = Column(String(20), default="XXBTZUSD", nullable=False)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

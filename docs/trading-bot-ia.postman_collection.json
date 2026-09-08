@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Trading Bot IA — Backend API",
-    "description": "Collection Postman pour le backend Python/FastAPI du Trading Bot IA.\n\n## Authentification\n1. Inscrire un compte avec `POST /auth/register`\n2. Se connecter avec `POST /auth/login` → le token JWT est automatiquement capturé dans `{{token}}`\n3. Connecter la plateforme trading avec `POST /auth/platform-connect`\n\n## Variables\n- `{{baseUrl}}` : `http://localhost:8000` (modifiable)\n- `{{token}}` : JWT token (rempli automatiquement par le script de login)\n\n## Routes\n- 22 endpoints versionnés sous `/api/v1`\n- 1 healthcheck public `/health`",
+    "description": "Collection Postman pour le backend Python/FastAPI du Trading Bot IA.\n\n## Authentification\n1. Inscrire un compte avec `POST /auth/register`\n2. Se connecter avec `POST /auth/login` → le token JWT est automatiquement capturé dans `{{token}}`\n3. Connecter la plateforme Kraken Spot avec `POST /auth/platform-connect`\n\n## Variables\n- `{{baseUrl}}` : `http://localhost:8000` (modifiable)\n- `{{token}}` : JWT token (rempli automatiquement par le script de login)\n\n## Routes\n- 22 endpoints versionnés sous `/api/v1`\n- 1 healthcheck public `/health`\n\n## Intégration Kraken Spot\n- Prix réels via API publique Kraken (Ticker, OHLC)\n- Exécution d'ordres via API privée (HMAC-SHA512)\n- Frais Kraken taker ~0.26% intégrés aux stats de performance\n- Paire de trading configurable (kraken_pair, ex: XXBTZUSD)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -98,9 +98,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"platform_name\": \"binance\",\n  \"api_key\": \"your-api-key-here\",\n  \"api_secret\": \"your-api-secret-here\"\n}"
+              "raw": "{\n  \"platform_name\": \"kraken\",\n  \"api_key\": \"your-kraken-api-key\",\n  \"api_secret\": \"your-kraken-api-secret\"\n}"
             },
-            "description": "Connecte la plateforme de trading. Les clés API sont chiffrées (Fernet) et jamais retournées. Auth JWT requise."
+            "description": "Connecte la plateforme Kraken Spot. Les clés API sont chiffrées (Fernet) et jamais retournées. Un health check réel (Time + Balance) est effectué. Auth JWT requise."
           }
         },
         {
@@ -146,9 +146,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"gain_limit_pct\": 8.0,\n  \"loss_limit_pct\": -5.0,\n  \"capital_pct_per_trade\": 3.0,\n  \"max_trades_per_month\": 30,\n  \"min_holding_duration\": 45,\n  \"tax_alert_threshold\": 500.0\n}"
+              "raw": "{\n  \"gain_limit_pct\": 8.0,\n  \"loss_limit_pct\": -5.0,\n  \"capital_pct_per_trade\": 3.0,\n  \"max_trades_per_month\": 30,\n  \"min_holding_duration\": 45,\n  \"tax_alert_threshold\": 500.0,\n  \"kraken_pair\": \"XXBTZUSD\"\n}"
             },
-            "description": "Mise à jour partielle de la config. Tous les champs sont optionnels. Bornes : gain 0-100%, loss -100-0%, capital 0-100%, quota 1-500. Auth JWT requise."
+            "description": "Mise à jour partielle de la config. Tous les champs sont optionnels. Bornes : gain 0-100%, loss -100-0%, capital 0-100%, quota 1-500. kraken_pair: paire Kraken (ex: XXBTZUSD). Auth JWT requise."
           }
         },
         {
@@ -248,7 +248,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "history", "stats"]
             },
-            "description": "Statistiques de performance : nombre total de trades, trades gagnants/perdants, taux de réussite, gain/perte cumulé, PnL net. Auth JWT requise."
+            "description": "Statistiques de performance : nombre total de trades, trades gagnants/perdants, taux de réussite, gain/perte cumulé, total_fees, PnL net (net des frais Kraken ~0.26% taker). Auth JWT requise."
           }
         }
       ]

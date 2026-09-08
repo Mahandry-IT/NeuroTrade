@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.core.deps import get_current_user_id
 from app.modules.trading_config.service import TradingConfigService
 from app.modules.trading_engine.service import TradingEngineService
+from app.modules.kraken.factory import build_executor
+from app.modules.kraken.client import KrakenSpotClient
 from app.schemas.trading_config import BotControlResponse, BotStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -23,7 +25,13 @@ def start_bot(
 ):
     logger.info("bot_start_requested user_id=%d", user_id)
     config_service = TradingConfigService(db)
-    engine_service = TradingEngineService(db)
+
+    # Build Kraken client (public) and executor (simulation or real)
+    config = config_service.get_config(user_id)
+    kraken_client = KrakenSpotClient()  # public endpoints (price data)
+    executor = build_executor(db, user_id, config["simulation_mode"])
+
+    engine_service = TradingEngineService(db, executor=executor, kraken_client=kraken_client)
 
     try:
         result = config_service.start_bot(user_id, engine_service.run_analysis_cycle)

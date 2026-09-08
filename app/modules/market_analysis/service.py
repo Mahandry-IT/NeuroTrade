@@ -113,8 +113,9 @@ def compute_macd(
 
 
 class MarketAnalysisService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, kraken_client=None):
         self.repo = MarketAnalysisRepository(db)
+        self._kraken_client = kraken_client
 
     def compute_indicators(self, symbol: str, prices: list[float]) -> dict:
         """Calcule tous les indicateurs techniques en Python pur (pas d'appel LLM)."""
@@ -134,10 +135,40 @@ class MarketAnalysisService:
 
         return indicators
 
+    def get_real_prices(self, pair: str, count: int = 100) -> list[float]:
+        """Récupère les prix réels via KrakenSpotClient (public).
+
+        Utilise les données OHLC pour calculer les indicateurs.
+        Fallback sur une liste vide si l'appel échoue.
+        """
+        if not self._kraken_client:
+            return []
+        try:
+            candles = self._kraken_client.get_ohlc(pair, interval=60)
+            return [c.close for c in candles[-count:]]
+        except Exception as e:
+            logger.error("kraken_ohlc_error pair=%s error=%s", pair, str(e))
+            return []
+
+    def get_current_price(self, pair: str) -> Optional[float]:
+        """Récupère le prix actuel via KrakenSpotClient (public)."""
+        if not self._kraken_client:
+            return None
+        try:
+            ticker = self._kraken_client.get_ticker_price(pair)
+            return ticker.last_price if ticker else None
+        except Exception as e:
+            logger.error("kraken_ticker_error pair=%s error=%s", pair, str(e))
+            return None
+
     def analyze(
         self, symbol: str, prices: list[float]
     ) -> dict:
         """Cycle complet : indicateurs → Gemini interprétation ou fallback rule-based."""
+        # Si pas de prix fournis, tenter de récupérer via Kraken
+        if not prices and self._kraken_client:
+            prices = self.get_real_prices(symbol)
+
         indicators = self.compute_indicators(symbol, prices)
 
         # Sauvegarder le signal en base
@@ -182,7 +213,7 @@ class MarketAnalysisService:
             import google.generativeai as genai
             genai.configure(api_key=settings.gemini_api_key)
 
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-3.6-flash")
             prompt = (
                 f"Analyse technique pour {symbol}:\n"
                 f"RSI: {indicators.get('rsi')}, "

@@ -46,12 +46,26 @@ class AuthService:
         conn = self.platform_repo.create_or_update(
             user_id, platform_name, enc_key, enc_secret
         )
-        # Simulate health check — TODO: real API call
-        self.platform_repo.update_status(user_id, PlatformConnectionStatus.CONNECTED)
+
+        # Health check réel via Kraken API si plateforme = kraken
+        if platform_name.lower() == "kraken":
+            from app.modules.kraken.client import KrakenSpotClient
+            try:
+                client = KrakenSpotClient(api_key_encrypted=enc_key, api_secret_encrypted=enc_secret)
+                client.get_time()  # vérifie la connectivité (public)
+                client.get_balance()  # vérifie les credentials (privé)
+                self.platform_repo.update_status(user_id, PlatformConnectionStatus.CONNECTED)
+            except Exception as e:
+                logger.warning("kraken_health_check_failed user_id=%d error=%s", user_id, str(e))
+                self.platform_repo.update_status(user_id, PlatformConnectionStatus.ERROR)
+                raise ValueError(f"Kraken connection failed: {e}")
+        else:
+            self.platform_repo.update_status(user_id, PlatformConnectionStatus.CONNECTED)
+
         logger.info("platform_connected user_id=%d platform=%s", user_id, platform_name)
         return {
             "platform_name": conn.platform_name,
-            "status": "connected",
+            "status": conn.status.value if conn.status else "connected",
         }
 
     def get_platform_status(self, user_id: int) -> Optional[dict]:
