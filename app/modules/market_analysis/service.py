@@ -221,7 +221,7 @@ class MarketAnalysisService:
                 "Réponds UNIQUEMENT par: BUY, SELL, ou HOLD avec une raison courte."
             )
 
-            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+            response = client.models.generate_content(model="gemini-3.6-flash", contents=prompt)
             _record_gemini_call()
             return response.text.strip()
 
