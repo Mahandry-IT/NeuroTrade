@@ -1,7 +1,7 @@
-"""Modèles SQLAlchemy — module history.
+"""Module history — pas de modèle dédié.
 
-TODO: définir les entités de ce module (voir plan-bot-trading-ia-backend.md, section 2. Modèle).
+Les données historiques proviennent de Trade et Position (trading_engine/models.py).
+Ce module expose uniquement le service (lecture/stats) et le router.
 """
 
-# from sqlalchemy.orm import Mapped, mapped_column
-# from app.core.database import Base
+# Aucun modèle ici — voir trading_engine/models.py

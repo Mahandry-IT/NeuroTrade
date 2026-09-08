@@ -1,6 +1,27 @@
-"""DTO Pydantic transverses.
+"""DTOs Pydantic transverses — point d'entrée unique."""
 
-TODO: TradingConfigUpdate, PlatformConnectRequest, TradeResponse,
-PositionResponse, TaxCounterResponse, HistoryExportQuery, PaginatedResponse.
-Voir plan, section 3. DTO / Validation.
-"""
+from app.schemas.auth import (
+    UserCreate, UserLogin, UserResponse, TokenResponse,
+    PlatformConnectRequest, PlatformStatusResponse,
+)
+from app.schemas.trading_config import (
+    TradingConfigUpdate, TradingConfigResponse,
+    BotStatusResponse, BotControlResponse, SimulationModeUpdate,
+)
+from app.schemas.trading_engine import PositionResponse, TradeResponse
+from app.schemas.history import (
+    PaginatedResponse, PaginationMeta, HistoryExportQuery, HistoryStatsResponse,
+)
+from app.schemas.tax_tracking import (
+    TaxCounterResponse, TaxExportRow, TaxExportResponse,
+)
+
+__all__ = [
+    "UserCreate", "UserLogin", "UserResponse", "TokenResponse",
+    "PlatformConnectRequest", "PlatformStatusResponse",
+    "TradingConfigUpdate", "TradingConfigResponse",
+    "BotStatusResponse", "BotControlResponse", "SimulationModeUpdate",
+    "PositionResponse", "TradeResponse",
+    "PaginatedResponse", "PaginationMeta", "HistoryExportQuery", "HistoryStatsResponse",
+    "TaxCounterResponse", "TaxExportRow", "TaxExportResponse",
+]

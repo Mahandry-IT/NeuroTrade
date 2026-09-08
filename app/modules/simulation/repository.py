@@ -1,13 +1,6 @@
-"""Accès aux données — module simulation.
+"""Repository simulation — délègue à TradingConfigRepository.
 
-TODO: implémenter les requêtes (voir plan, section 4. Repository).
+L'état simulation/réel est porté par TradingConfig.simulation_mode (RG-5).
 """
 
-
-class SimulationRepository:
-    """Repository pour le module simulation."""
-
-    def __init__(self, db_session):
-        self.db = db_session
-
-    # TODO: méthodes CRUD / requêtes agrégées
+# Pas de repository dédié — voir trading_config/repository.py
