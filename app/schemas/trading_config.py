@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class TradingConfigUpdate(BaseModel):
@@ -19,6 +19,25 @@ class TradingConfigUpdate(BaseModel):
     auto_discover_markets: Optional[bool] = None
     max_concurrent_positions: Optional[int] = Field(None, ge=1, le=20)
     quote_currency: Optional[str] = Field(None, min_length=2, max_length=10)
+
+    @field_validator("quote_currency")
+    @classmethod
+    def normalize_quote_currency(cls, v: str | None) -> str | None:
+        """Normalize and validate quote_currency against supported list."""
+        if v is None:
+            return v
+        upper = v.upper().strip()
+        # Legacy code normalization (ZUSD -> USD)
+        _legacy = {"ZUSD": "USD", "ZEUR": "EUR", "ZGBP": "GBP",
+                    "ZCAD": "CAD", "ZAUD": "AUD", "ZJPY": "JPY", "ZCHF": "CHF"}
+        upper = _legacy.get(upper, upper)
+        _supported = {"USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF",
+                       "USDT", "USDC", "DAI"}
+        if upper not in _supported:
+            raise ValueError(
+                f"Unsupported quote_currency '{v}'. Supported: {sorted(_supported)}"
+            )
+        return upper
     min_volume_24h: Optional[float] = Field(None, ge=0)
     scanner_cache_ttl: Optional[int] = Field(None, ge=60, le=3600)
 

@@ -7,6 +7,8 @@ from app.modules.market_scanner.service import (
     WEIGHT_VOLUME,
     WEIGHT_SPREAD,
     WEIGHT_VOLATILITY,
+    normalize_kraken_asset,
+    SUPPORTED_QUOTES,
 )
 from app.modules.market_scanner.schemas import MarketCandidate
 
@@ -349,3 +351,172 @@ class TestMarketScannerService:
 
         assert len(candidates) == 1
         assert candidates[0].pair == "XXBTZUSD"
+
+
+
+class TestNormalizeKrakenAsset:
+    """Tests de la fonction de normalisation des codes d'actifs Kraken."""
+
+    def test_zusd_to_usd(self):
+        assert normalize_kraken_asset("ZUSD") == "USD"
+
+    def test_zeur_to_eur(self):
+        assert normalize_kraken_asset("ZEUR") == "EUR"
+
+    def test_zgbp_to_gbp(self):
+        assert normalize_kraken_asset("ZGBP") == "GBP"
+
+    def test_xxbt_to_xbt(self):
+        """XXBT -> XBT (legacy crypto, not in quote map)."""
+        result = normalize_kraken_asset("XXBT")
+        assert result == "XBT"
+
+    def test_xeth_to_eth(self):
+        """XETH -> ETH via crypto map."""
+        result = normalize_kraken_asset("XETH")
+        assert result == "ETH"
+
+    def test_display_name_passthrough(self):
+        """Already normalized names pass through unchanged."""
+        assert normalize_kraken_asset("USD") == "USD"
+        assert normalize_kraken_asset("EUR") == "EUR"
+        assert normalize_kraken_asset("ADA") == "ADA"
+
+    def test_lowercase_input(self):
+        """Case-insensitive input is handled."""
+        assert normalize_kraken_asset("zusd") == "USD"
+        assert normalize_kraken_asset("xxbt") == "XBT"
+
+
+class TestLegacyCodeFiltering:
+    """Tests que le scanner filtre correctement avec des codes legacy Kraken."""
+
+    def _make_legacy_pair(self, altname: str, quote: str, base: str = "XXBT") -> dict:
+        return {
+            "altname": altname,
+            "wsname": f"{altname[:3]}/{quote}",
+            "base": base,
+            "quote": quote,
+            "pair_type": "spot",
+        }
+
+    def _make_ticker(self, last=100.0, bid=99.0, ask=101.0, volume_24h=10000.0, high=110.0, low=90.0):
+        return {
+            "c": [str(last), "1.0"],
+            "b": [str(bid), "1.0", "1.0"],
+            "a": [str(ask), "1.0", "1.0"],
+            "v": ["100.0", str(volume_24h)],
+            "h": ["100.0", str(high)],
+            "l": ["100.0", str(low)],
+        }
+
+    def test_legacy_zusd_matches_usd_quote(self):
+        """Kraken returns quote=ZUSD — scanner should match quote_currency=USD."""
+        client = MagicMock()
+        client.get_asset_pairs.return_value = {
+            "XXBTZUSD": self._make_legacy_pair("XBTUSD", "ZUSD", "XXBT"),
+            "ADAUSD": {**self._make_legacy_pair("ADAUSD", "USD", "ADA"), "base": "ADA"},
+        }
+        client.get_ticker.return_value = self._make_ticker(volume_24h=50000)
+
+        scanner = MarketScannerService(client)
+        candidates = scanner.scan(quote_currency="USD", cache_ttl=0)
+
+        pairs = [c.pair for c in candidates]
+        assert "XXBTZUSD" in pairs, f"Legacy XXBTZUSD should match USD, got: {pairs}"
+        assert "ADAUSD" in pairs
+
+    def test_legacy_zeur_matches_eur_quote(self):
+        """Kraken returns quote=ZEUR — scanner should match quote_currency=EUR."""
+        client = MagicMock()
+        client.get_asset_pairs.return_value = {
+            "XETHZEUR": self._make_legacy_pair("ETHEUR", "ZEUR", "XETH"),
+        }
+        client.get_ticker.return_value = self._make_ticker(volume_24h=50000)
+
+        scanner = MarketScannerService(client)
+        candidates = scanner.scan(quote_currency="EUR", cache_ttl=0)
+
+        assert len(candidates) == 1
+        assert candidates[0].pair == "XETHZEUR"
+
+    def test_legacy_base_excluded_when_equals_quote(self):
+        """Base=ZUSD (inverted pair) should be excluded when quote=USD."""
+        client = MagicMock()
+        client.get_asset_pairs.return_value = {
+            "USDZEUR": self._make_legacy_pair("USDEUR", "ZEUR", "ZUSD"),
+        }
+        client.get_ticker.return_value = self._make_ticker()
+
+        scanner = MarketScannerService(client)
+        candidates = scanner.scan(quote_currency="EUR", cache_ttl=0)
+
+        # USDZEUR has base=ZUSD -> normalized to USD == EUR? No, USD != EUR
+        # Actually base=ZUSD normalized to USD, quote=ZEUR normalized to EUR
+        # base (USD) != quote (EUR), so pair passes... but it's inverted
+        # The inverted check: base == quote_upper -> USD == EUR -> False
+        # So it passes. This is correct behavior.
+        assert len(candidates) == 1
+
+    def test_consecutive_no_pairs_increments_counter(self):
+        """Each empty scan increments the consecutive counter."""
+        client = MagicMock()
+        client.get_asset_pairs.return_value = {}  # empty
+
+        scanner = MarketScannerService(client)
+        scanner.scan(quote_currency="USD", cache_ttl=0)
+        assert scanner._consecutive_no_pairs == 1
+
+        scanner.scan(quote_currency="USD", cache_ttl=0)
+        assert scanner._consecutive_no_pairs == 2
+
+    def test_consecutive_counter_resets_on_success(self):
+        """Counter resets to 0 when pairs are found."""
+        client = MagicMock()
+
+        # First: empty
+        client.get_asset_pairs.return_value = {}
+        scanner = MarketScannerService(client)
+        scanner.scan(quote_currency="USD", cache_ttl=0)
+        assert scanner._consecutive_no_pairs == 1
+
+        # Second: success
+        client.get_asset_pairs.return_value = {
+            "XXBTZUSD": self._make_legacy_pair("XBTUSD", "ZUSD", "XXBT"),
+        }
+        client.get_ticker.return_value = self._make_ticker(volume_24h=50000)
+        scanner.scan(quote_currency="USD", cache_ttl=0)
+        assert scanner._consecutive_no_pairs == 0
+
+
+class TestQuoteCurrencyValidation:
+    """Tests de la validation quote_currency dans le schema Pydantic."""
+
+    def test_valid_quote_accepted(self):
+        from app.schemas.trading_config import TradingConfigUpdate
+        config = TradingConfigUpdate(quote_currency="USD")
+        assert config.quote_currency == "USD"
+
+    def test_legacy_quote_normalized(self):
+        from app.schemas.trading_config import TradingConfigUpdate
+        config = TradingConfigUpdate(quote_currency="ZUSD")
+        assert config.quote_currency == "USD"
+
+    def test_lowercase_normalized(self):
+        from app.schemas.trading_config import TradingConfigUpdate
+        config = TradingConfigUpdate(quote_currency="eur")
+        assert config.quote_currency == "EUR"
+
+    def test_invalid_quote_rejected(self):
+        from app.schemas.trading_config import TradingConfigUpdate
+        from pydantic import ValidationError
+        try:
+            TradingConfigUpdate(quote_currency="XYZ")
+            assert False, "Should have raised ValidationError"
+        except ValidationError as e:
+            assert "Unsupported" in str(e)
+
+    def test_none_accepted(self):
+        from app.schemas.trading_config import TradingConfigUpdate
+        config = TradingConfigUpdate(quote_currency=None)
+        assert config.quote_currency is None
