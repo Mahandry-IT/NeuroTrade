@@ -34,6 +34,11 @@ class TradingConfigService:
             "tax_alert_threshold": config.tax_alert_threshold,
             "simulation_mode": config.simulation_mode,
             "kraken_pair": config.kraken_pair,
+            "auto_discover_markets": config.auto_discover_markets,
+            "max_concurrent_positions": config.max_concurrent_positions,
+            "quote_currency": config.quote_currency,
+            "min_volume_24h": config.min_volume_24h,
+            "scanner_cache_ttl": config.scanner_cache_ttl,
             "created_at": config.created_at,
             "updated_at": config.updated_at,
         }

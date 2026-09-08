@@ -24,6 +24,7 @@ from app.modules.trading_engine.router import router as bot_router
 from app.modules.history.router import router as history_router
 from app.modules.tax_tracking.router import router as tax_router
 from app.modules.notifications.router import router as notifications_router
+from app.modules.market_scanner.router import router as scanner_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,6 +71,7 @@ app.include_router(bot_router, prefix="/api/v1")
 app.include_router(history_router, prefix="/api/v1")
 app.include_router(tax_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(scanner_router, prefix="/api/v1")
 
 
 @app.get("/health")

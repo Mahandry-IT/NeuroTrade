@@ -15,6 +15,12 @@ class TradingConfigUpdate(BaseModel):
     min_holding_duration: Optional[int] = Field(None, ge=0)  # en minutes
     tax_alert_threshold: Optional[float] = Field(None, ge=0)
     kraken_pair: Optional[str] = Field(None, min_length=3, max_length=20)
+    # Market Scanner
+    auto_discover_markets: Optional[bool] = None
+    max_concurrent_positions: Optional[int] = Field(None, ge=1, le=20)
+    quote_currency: Optional[str] = Field(None, min_length=2, max_length=10)
+    min_volume_24h: Optional[float] = Field(None, ge=0)
+    scanner_cache_ttl: Optional[int] = Field(None, ge=60, le=3600)
 
 
 class TradingConfigResponse(BaseModel):
@@ -28,6 +34,12 @@ class TradingConfigResponse(BaseModel):
     tax_alert_threshold: float
     simulation_mode: bool
     kraken_pair: str
+    # Market Scanner
+    auto_discover_markets: bool
+    max_concurrent_positions: int
+    quote_currency: str
+    min_volume_24h: float
+    scanner_cache_ttl: int
     created_at: datetime
     updated_at: datetime
 

@@ -35,8 +35,15 @@ class TradingConfig(Base):
     # RG-5 : mode simulation (activé par défaut)
     simulation_mode = Column(Boolean, default=True, nullable=False)
 
-    # Paire de trading Kraken (ex: XXBTZUSD)
+    # Paire de trading Kraken (ex: XXBTZUSD) — utilisé en mode fixed
     kraken_pair = Column(String(20), default="XXBTZUSD", nullable=False)
+
+    # ── Market Scanner — découverte automatique des marchés ──
+    auto_discover_markets = Column(Boolean, default=False, nullable=False)
+    max_concurrent_positions = Column(Integer, default=3, nullable=False)
+    quote_currency = Column(String(10), default="USD", nullable=False)
+    min_volume_24h = Column(Float, default=10_000.0, nullable=False)
+    scanner_cache_ttl = Column(Integer, default=300, nullable=False)  # secondes
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
