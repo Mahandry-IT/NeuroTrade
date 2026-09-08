@@ -44,7 +44,7 @@ class BotState(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-    status = Column(Enum(BotStatus), default=BotStatus.STOPPED, nullable=False)
+    status = Column(Enum(BotStatus, values_callable=lambda e: [x.value for x in e]), default=BotStatus.STOPPED, nullable=False)
     last_cycle_at = Column(DateTime(timezone=True), nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
     stopped_at = Column(DateTime(timezone=True), nullable=True)

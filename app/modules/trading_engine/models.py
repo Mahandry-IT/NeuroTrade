@@ -39,7 +39,7 @@ class Position(Base):
     entry_price = Column(Float, nullable=False)
     opened_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     closed_at = Column(DateTime(timezone=True), nullable=True)
-    status = Column(Enum(PositionStatus), default=PositionStatus.OPEN, nullable=False)
+    status = Column(Enum(PositionStatus, values_callable=lambda e: [x.value for x in e]), default=PositionStatus.OPEN, nullable=False)
     is_simulated = Column(Boolean, default=True, nullable=False)
 
     __table_args__ = (
@@ -54,13 +54,13 @@ class Trade(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     position_id = Column(Integer, ForeignKey("positions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    trade_type = Column(Enum(TradeType), nullable=False)
+    trade_type = Column(Enum(TradeType, values_callable=lambda e: [x.value for x in e]), nullable=False)
     symbol = Column(String(20), nullable=False)
     amount_fiat = Column(Float, nullable=False)
     quantity = Column(Float, nullable=False)
     price = Column(Float, nullable=False)
     executed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    result = Column(Enum(OrderResult), default=OrderResult.FILLED)
+    result = Column(Enum(OrderResult, values_callable=lambda e: [x.value for x in e]), default=OrderResult.FILLED)
     is_simulated = Column(Boolean, default=True, nullable=False)
     idempotency_key = Column(String(255), unique=True, nullable=True)  # position_id + cycle_timestamp
     notes = Column(Text, nullable=True)  # raison de la décision (RG-2/3/9 etc.)

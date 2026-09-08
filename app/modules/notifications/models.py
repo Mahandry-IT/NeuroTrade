@@ -31,10 +31,10 @@ class Notification(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    type = Column(Enum(NotificationType), nullable=False)
+    type = Column(Enum(NotificationType, values_callable=lambda e: [x.value for x in e]), nullable=False)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
-    channel = Column(Enum(NotificationChannel), default=NotificationChannel.IN_APP)
+    channel = Column(Enum(NotificationChannel, values_callable=lambda e: [x.value for x in e]), default=NotificationChannel.IN_APP)
     sent = Column(Boolean, default=False)
     read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

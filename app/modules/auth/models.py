@@ -29,7 +29,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
-    status = Column(Enum(UserStatus), default=UserStatus.ACTIVE, nullable=False)
+    status = Column(Enum(UserStatus, values_callable=lambda e: [x.value for x in e]), default=UserStatus.ACTIVE, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -44,7 +44,7 @@ class PlatformConnection(Base):
     platform_name = Column(String(100), nullable=False)  # ex: binance, bybit
     encrypted_api_key = Column(Text, nullable=False)  # Fernet — jamais en clair
     encrypted_api_secret = Column(Text, nullable=False)
-    status = Column(Enum(PlatformConnectionStatus), default=PlatformConnectionStatus.DISCONNECTED)
+    status = Column(Enum(PlatformConnectionStatus, values_callable=lambda e: [x.value for x in e]), default=PlatformConnectionStatus.DISCONNECTED)
     last_health_check = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
