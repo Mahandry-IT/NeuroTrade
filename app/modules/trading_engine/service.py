@@ -61,15 +61,16 @@ def should_force_sell(
 
 
 class TradingEngineService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, executor=None, kraken_client=None):
         self.config_repo = TradingConfigRepository(db)
         self.bot_repo = BotStateRepository(db)
         self.position_repo = PositionRepository(db)
         self.trade_repo = TradeRepository(db)
         self.tax_repo = TaxTrackingRepository(db)
-        self.market_service = MarketAnalysisService(db)
+        self.market_service = MarketAnalysisService(db, kraken_client=kraken_client)
         self.notification_service = NotificationService(db)
         self.db = db
+        self._executor = executor
 
     def run_analysis_cycle(self, user_id: int) -> None:
         """Cycle complet d'analyse — appelé par le scheduler."""
@@ -96,8 +97,12 @@ class TradingEngineService:
 
     def _evaluate_position(self, user_id: int, position, config) -> None:
         """Évalue une position ouverte et décide de l'action."""
-        # Pour l'exemple, on simule un prix actuel (TODO: vrai appel API plateforme)
-        current_price = position.entry_price  # placeholder
+        # Récupérer le prix réel via KrakenSpotClient
+        current_price = self.market_service.get_current_price(config.kraken_pair)
+        if current_price is None:
+            # Fallback: prix d'entrée (pas d'appel réseau possible)
+            logger.warning("price_unavailable user_id=%d symbol=%s — using entry_price", user_id, position.symbol)
+            current_price = position.entry_price
 
         monthly_trades = self.trade_repo.count_monthly_trades(user_id, config.simulation_mode)
 
@@ -122,7 +127,14 @@ class TradingEngineService:
 
         if "BUY" in str(signal).upper():
             logger.info("buy_signal user_id=%d symbol=%s", user_id, position.symbol)
-            # TODO: exécuter l'achat si pas déjà en position
+            # RG-8 : vérifier quota avant achat
+            if config.max_trades_per_month and monthly_trades >= config.max_trades_per_month:
+                logger.warning("monthly_quota_reached user_id=%d quota=%d", user_id, config.max_trades_per_month)
+            elif self._executor:
+                amount_fiat = position.amount * config.capital_pct_per_trade / 100
+                exec_result = self._executor.buy(config.kraken_pair, amount_fiat)
+                if exec_result.success:
+                    self._record_buy(user_id, position, exec_result, config)
         elif "SELL" in str(signal).upper():
             self._execute_sell(
                 user_id, position, current_price,
@@ -140,10 +152,20 @@ class TradingEngineService:
             logger.warning("duplicate_trade_blocked key=%s", idempotency_key)
             return
 
-        # Calculer le PnL
-        pnl = (price - position.entry_price) * position.quantity
+        # Exécuter via l'executor (simulation ou réel)
+        fee = 0.0
+        if self._executor:
+            exec_result = self._executor.sell(config.kraken_pair, position.quantity, price)
+            if not exec_result.success:
+                logger.error("sell_execution_failed user_id=%d error=%s", user_id, exec_result.error_message)
+                return
+            fee = exec_result.fee
 
-        # Créer le trade
+        # Calculer le PnL net des frais
+        gross_pnl = (price - position.entry_price) * position.quantity
+        pnl = gross_pnl - fee
+
+        # Créer le trade avec frais
         trade = self.trade_repo.create(
             user_id=user_id,
             position_id=position.id,
@@ -155,6 +177,7 @@ class TradingEngineService:
             is_simulated=config.simulation_mode,
             idempotency_key=idempotency_key,
             notes=reason,
+            fee=fee,
         )
 
         # Fermer la position
@@ -170,6 +193,30 @@ class TradingEngineService:
         logger.info(
             "trade_executed user_id=%d trade_id=%d symbol=%s pnl=%.2f reason=%s",
             user_id, trade.id, position.symbol, pnl, reason,
+        )
+
+    def _record_buy(
+        self, user_id: int, position, exec_result, config
+    ) -> None:
+        """Enregistre un achat exécuté (ID: RG-10)."""
+        idempotency_key = f"buy_{position.id}_{datetime.now(timezone.utc).isoformat()}"
+
+        if self.trade_repo.check_idempotency(idempotency_key):
+            logger.warning("duplicate_buy_blocked key=%s", idempotency_key)
+            return
+
+        self.trade_repo.create(
+            user_id=user_id,
+            position_id=position.id,
+            trade_type=TradeType.BUY,
+            symbol=position.symbol,
+            amount_fiat=exec_result.fill_price * exec_result.quantity,
+            quantity=exec_result.quantity,
+            price=exec_result.fill_price,
+            is_simulated=exec_result.is_simulated,
+            idempotency_key=idempotency_key,
+            notes="signal: BUY",
+            fee=exec_result.fee,
         )
 
     def open_position(
