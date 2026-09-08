@@ -67,7 +67,8 @@ class KrakenSpotClient:
 
     def get_asset_pairs(self) -> dict[str, dict]:
         """GET /0/public/AssetPairs — métadonnées de toutes les paires."""
-        data = self._public_get("AssetPairs")
+        # assetVersion=1: receive display names (USD, BTC) instead of legacy codes (ZUSD, XXBT)
+        data = self._public_get("AssetPairs", {"assetVersion": "1"})
         return data.get("result", {})
 
     def get_ticker(self, pair: str) -> dict:

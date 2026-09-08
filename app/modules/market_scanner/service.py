@@ -18,6 +18,41 @@ from app.modules.market_scanner.schemas import MarketCandidate
 
 logger = logging.getLogger(__name__)
 
+# ── Supported quote currencies (display names) ──
+SUPPORTED_QUOTES = frozenset({
+    "USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF",
+    "USDT", "USDC", "DAI",
+})
+
+# ── Legacy-to-display mapping (fallback if assetVersion=1 fails) ──
+_LEGACY_QUOTE_MAP: dict[str, str] = {
+    "ZUSD": "USD", "ZEUR": "EUR", "ZGBP": "GBP",
+    "ZCAD": "CAD", "ZAUD": "AUD", "ZJPY": "JPY",
+    "ZCHF": "CHF",
+}
+
+def normalize_kraken_asset(code: str) -> str:
+    """Strip Kraken legacy prefixes (Z/X) and return the display name.
+
+    Examples: ZUSD -> USD, XXBT -> BTC, XETH -> ETH, ADA -> ADA
+    """
+    upper = code.upper()
+    # Check quote-specific legacy mapping first
+    if upper in _LEGACY_QUOTE_MAP:
+        return _LEGACY_QUOTE_MAP[upper]
+    # Strip Z prefix for fiat (ZUSD -> USD, ZEUR -> EUR)
+    if upper.startswith("Z") and len(upper) > 1:
+        stripped = upper[1:]
+        if stripped in SUPPORTED_QUOTES:
+            return stripped
+    # Strip X prefix for crypto (XXBT -> BTC, XETH -> ETH)
+    if upper.startswith("X") and len(upper) > 1:
+        stripped = upper[1:]
+        # Common Kraken legacy crypto codes
+        _crypto_map = {"XBT": "BTC", "XETH": "ETH"}
+        return _crypto_map.get(upper, stripped)
+    return upper
+
 # ── Poids du scoring composite ──
 WEIGHT_VOLUME = 0.40
 WEIGHT_SPREAD = 0.30
@@ -42,6 +77,7 @@ class MarketScannerService:
     def __init__(self, kraken_client: KrakenSpotClient):
         self._client = kraken_client
         self._cache: dict[str, tuple[float, list[MarketCandidate]]] = {}
+        self._consecutive_no_pairs = 0  # tracks repeated scanner_no_pairs across cycles
 
     def scan(
         self,
@@ -82,24 +118,38 @@ class MarketScannerService:
 
         # Étape 2 : filtrer par devise de cotation
         quote_upper = quote_currency.upper()
+        raw_count = len(raw_pairs)
         filtered_pairs = {}
         for pair_name, pair_data in raw_pairs.items():
             quote = pair_data.get("quote", "")
+            # Normalize legacy Kraken codes (ZUSD -> USD) if needed
+            normalized_quote = normalize_kraken_asset(quote)
             # Filtrer : paires avec la bonne devise, pas de leverage, pas de staking
-            if quote != quote_upper:
+            if normalized_quote != quote_upper:
                 continue
             pair_type = pair_data.get("pair_type", "")
             if pair_type in ("margin", "futures", "staking"):
                 continue
             # Ignorer les paires inverses (ex: USDZEUR)
             base = pair_data.get("base", "")
-            if base == quote_upper:
+            if normalize_kraken_asset(base) == quote_upper:
                 continue
             filtered_pairs[pair_name] = pair_data
 
         if not filtered_pairs:
-            logger.warning("scanner_no_pairs quote=%s", quote_currency)
+            self._consecutive_no_pairs += 1
+            level = logging.ERROR if self._consecutive_no_pairs >= 3 else logging.WARNING
+            logger.log(level,
+                "scanner_no_pairs quote=%s raw_pairs_count=%d consecutive=%d",
+                quote_upper, raw_count, self._consecutive_no_pairs,
+            )
             return []
+
+        # Reset counter on success
+        if self._consecutive_no_pairs > 0:
+            logger.info("scanner_pairs_found quote=%s after %d empty cycles",
+                quote_upper, self._consecutive_no_pairs)
+        self._consecutive_no_pairs = 0
 
         logger.info(
             "scanner_pairs_filtered quote=%s count=%d",
