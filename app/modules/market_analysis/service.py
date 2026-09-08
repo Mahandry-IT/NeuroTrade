@@ -210,10 +210,8 @@ class MarketAnalysisService:
             return None
 
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=settings.gemini_api_key)
-
-            model = genai.GenerativeModel("gemini-3.6-flash")
+            from google import genai
+            client = genai.Client(api_key=settings.gemini_api_key)
             prompt = (
                 f"Analyse technique pour {symbol}:\n"
                 f"RSI: {indicators.get('rsi')}, "
@@ -223,7 +221,7 @@ class MarketAnalysisService:
                 "Réponds UNIQUEMENT par: BUY, SELL, ou HOLD avec une raison courte."
             )
 
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
             _record_gemini_call()
             return response.text.strip()
 
