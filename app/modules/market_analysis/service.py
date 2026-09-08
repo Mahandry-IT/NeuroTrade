@@ -213,7 +213,7 @@ class MarketAnalysisService:
             import google.generativeai as genai
             genai.configure(api_key=settings.gemini_api_key)
 
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-3.6-flash")
             prompt = (
                 f"Analyse technique pour {symbol}:\n"
                 f"RSI: {indicators.get('rsi')}, "
